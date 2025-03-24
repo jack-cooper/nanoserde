@@ -11,9 +11,9 @@ use crate::shared;
 pub fn derive_ser_ron_proxy(proxy_type: &str, type_: &str, crate_name: &str) -> TokenStream {
     format!(
         "impl {}::SerRon for {} {{
-            fn ser_ron(&self, d: usize, s: &mut {}::SerRonState) {{
+            fn ser_ron(&self, s: &mut {}::SerRonState) {{
                 let proxy: {} = self.into();
-                proxy.ser_ron(d, s);
+                proxy.ser_ron(s);
             }}
         }}",
         crate_name, type_, crate_name, proxy_type
@@ -51,8 +51,8 @@ pub fn derive_ser_ron_struct(struct_: &Struct, crate_name: &str) -> TokenStream 
             l!(
                 s,
                 "if let Some(t) = &self.{} {{
-                    s.field(d+1, \"{}\");
-                    t.ser_ron(d+1, s);
+                    s.field(\"{}\");
+                    t.ser_ron(s);
                     s.conl();
                 }};",
                 struct_fieldname,
@@ -61,8 +61,8 @@ pub fn derive_ser_ron_struct(struct_: &Struct, crate_name: &str) -> TokenStream 
         } else {
             l!(
                 s,
-                "s.field(d+1,\"{}\");
-                self.{}.ser_ron(d+1, s);
+                "s.field(\"{}\");
+                self.{}.ser_ron(s);
                 s.conl();",
                 ron_fieldname,
                 struct_fieldname
@@ -73,10 +73,10 @@ pub fn derive_ser_ron_struct(struct_: &Struct, crate_name: &str) -> TokenStream 
     format!(
         "
         impl {}::SerRon for {} {{
-            fn ser_ron(&self, d: usize, s: &mut {}::SerRonState) {{
+            fn ser_ron(&self, s: &mut {}::SerRonState) {{
                 s.st_pre();
                 {}
-                s.st_post(d);
+                s.st_post();
             }}
         }}
     ",
@@ -97,7 +97,7 @@ pub fn derive_ser_ron_struct_unnamed(struct_: &Struct, crate_name: &str) -> Toke
 
     let last = struct_.fields.len() - 1;
     for (n, _) in struct_.fields.iter().enumerate() {
-        l!(body, "self.{}.ser_ron(d, s);", n);
+        l!(body, "self.{}.ser_ron(s);", n);
         if n != last {
             l!(body, "s.out.push_str(\", \");");
         }
@@ -105,7 +105,7 @@ pub fn derive_ser_ron_struct_unnamed(struct_: &Struct, crate_name: &str) -> Toke
     format!(
         "
         impl {}::SerRon for {} {{
-            fn ser_ron(&self, d: usize, s: &mut {}::SerRonState) {{
+            fn ser_ron(&self, s: &mut {}::SerRonState) {{
                 s.out.push('(');
                 {}
                 s.out.push(')');
@@ -347,8 +347,8 @@ pub fn derive_ser_ron_enum(enum_: &Enum, crate_name: &str) -> TokenStream {
                         l!(
                             inner,
                             "if {}.is_some() {{
-                                s.field(d+1, \"{}\");
-                                {}.ser_ron(d+1, s);
+                                s.field(\"{}\");
+                                {}.ser_ron(s);
                                 s.conl();
                             }}",
                             name.as_str(),
@@ -358,8 +358,8 @@ pub fn derive_ser_ron_enum(enum_: &Enum, crate_name: &str) -> TokenStream {
                     } else {
                         l!(
                             inner,
-                            "s.field(d+1, \"{}\");
-                            {}.ser_ron(d+1, s);
+                            "s.field(\"{}\");
+                            {}.ser_ron(s);
                             s.conl();",
                             name,
                             name
@@ -372,7 +372,7 @@ pub fn derive_ser_ron_enum(enum_: &Enum, crate_name: &str) -> TokenStream {
                         s.out.push_str(\"{}\");
                         s.st_pre();
                         {}
-                        s.st_post(d);
+                        s.st_post();
                     }}",
                     ident,
                     names.join(","),
@@ -389,9 +389,9 @@ pub fn derive_ser_ron_enum(enum_: &Enum, crate_name: &str) -> TokenStream {
                 let last = contents.len() - 1;
                 for (index, _) in &mut contents.iter().enumerate() {
                     let name = format!("f{}", index);
-                    l!(inner, "{}.ser_ron(d, s);", name);
+                    l!(inner, "{}.ser_ron(s);", name);
                     if index != last {
-                        l!(inner, "s.out.push_str(\", \");")
+                        l!(inner, "s.out.push_str(\",\");")
                     }
                     names.push(name);
                 }
@@ -417,7 +417,7 @@ pub fn derive_ser_ron_enum(enum_: &Enum, crate_name: &str) -> TokenStream {
     format!(
         "
         impl {}::SerRon for {} {{
-            fn ser_ron(&self, d: usize, s: &mut {}::SerRonState) {{
+            fn ser_ron(&self, s: &mut {}::SerRonState) {{
                 match self {{
                     {}
                 }}

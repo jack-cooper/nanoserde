@@ -18,14 +18,7 @@ impl SerJsonState {
         Self { out }
     }
 
-    pub fn indent(&mut self, _d: usize) {
-        //for _ in 0..d {
-        //    self.out.push_str("    ");
-        //}
-    }
-
-    pub fn field(&mut self, d: usize, field: &str) {
-        self.indent(d);
+    pub fn field(&mut self, field: &str) {
         self.out.push('"');
         self.out.push_str(field);
         self.out.push('"');
@@ -46,8 +39,7 @@ impl SerJsonState {
         self.out.push('{');
     }
 
-    pub fn st_post(&mut self, d: usize) {
-        self.indent(d);
+    pub fn st_post(&mut self) {
         self.out.push('}');
     }
 }
@@ -59,7 +51,7 @@ pub trait SerJson {
     /// This is a convenient wrapper around `ser_json`.
     fn serialize_json(&self) -> String {
         let mut s = SerJsonState { out: String::new() };
-        self.ser_json(0, &mut s);
+        self.ser_json(&mut s);
         s.out
     }
 
@@ -68,10 +60,10 @@ pub trait SerJson {
     /// ```rust
     /// # use nanoserde::*;
     /// let mut s = SerJsonState::new(String::new());
-    /// 42u32.ser_json(0, &mut s);
+    /// 42u32.ser_json(&mut s);
     /// assert_eq!(s.out, "42");
     /// ```
-    fn ser_json(&self, d: usize, s: &mut SerJsonState);
+    fn ser_json(&self, s: &mut SerJsonState);
 }
 
 /// A trait for objects that can be deserialized from JSON.
@@ -707,7 +699,7 @@ impl DeJsonState {
 macro_rules! impl_ser_de_json_unsigned {
     ( $ ty: ident, $ max: expr) => {
         impl SerJson for $ty {
-            fn ser_json(&self, _d: usize, s: &mut SerJsonState) {
+            fn ser_json(&self, s: &mut SerJsonState) {
                 s.out.push_str(&self.to_string());
             }
         }
@@ -725,7 +717,7 @@ macro_rules! impl_ser_de_json_unsigned {
 macro_rules! impl_ser_de_json_signed {
     ( $ ty: ident, $ min: expr, $ max: expr) => {
         impl SerJson for $ty {
-            fn ser_json(&self, _d: usize, s: &mut SerJsonState) {
+            fn ser_json(&self, s: &mut SerJsonState) {
                 s.out.push_str(&self.to_string());
             }
         }
@@ -744,7 +736,7 @@ macro_rules! impl_ser_de_json_signed {
 macro_rules! impl_ser_de_json_float {
     ( $ ty: ident) => {
         impl SerJson for $ty {
-            fn ser_json(&self, _d: usize, s: &mut SerJsonState) {
+            fn ser_json(&self, s: &mut SerJsonState) {
                 s.out.push_str(&format!("{self:?}"));
             }
         }
@@ -776,9 +768,9 @@ impl<T> SerJson for Option<T>
 where
     T: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         if let Some(v) = self {
-            v.ser_json(d, s);
+            v.ser_json(s);
         } else {
             s.out.push_str("null");
         }
@@ -799,7 +791,7 @@ where
 }
 
 impl SerJson for () {
-    fn ser_json(&self, _d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push_str("null")
     }
 }
@@ -816,7 +808,7 @@ impl DeJson for () {
 }
 
 impl SerJson for bool {
-    fn ser_json(&self, _d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         if *self {
             s.out.push_str("true")
         } else {
@@ -836,7 +828,7 @@ impl DeJson for bool {
 macro_rules! impl_ser_json_string {
     ($ty: ident) => {
         impl SerJson for $ty {
-            fn ser_json(&self, _d: usize, s: &mut SerJsonState) {
+            fn ser_json(&self, s: &mut SerJsonState) {
                 s.out.push('"');
                 for c in self.chars() {
                     match c {
@@ -875,13 +867,12 @@ impl<T> SerJson for Vec<T>
 where
     T: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('[');
         if !self.is_empty() {
             let last = self.len() - 1;
             for (index, item) in self.iter().enumerate() {
-                s.indent(d + 1);
-                item.ser_json(d + 1, s);
+                item.ser_json(s);
                 if index != last {
                     s.out.push(',');
                 }
@@ -913,13 +904,12 @@ impl<T> SerJson for std::collections::HashSet<T>
 where
     T: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('[');
         if !self.is_empty() {
             let last = self.len() - 1;
             for (index, item) in self.iter().enumerate() {
-                s.indent(d + 1);
-                item.ser_json(d + 1, s);
+                item.ser_json(s);
                 if index != last {
                     s.out.push(',');
                 }
@@ -951,13 +941,12 @@ impl<T> SerJson for LinkedList<T>
 where
     T: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('[');
         if !self.is_empty() {
             let last = self.len() - 1;
             for (index, item) in self.iter().enumerate() {
-                s.indent(d + 1);
-                item.ser_json(d + 1, s);
+                item.ser_json(s);
                 if index != last {
                     s.out.push(',');
                 }
@@ -988,13 +977,12 @@ impl<T> SerJson for BTreeSet<T>
 where
     T: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('[');
         if !self.is_empty() {
             let last = self.len() - 1;
             for (index, item) in self.iter().enumerate() {
-                s.indent(d + 1);
-                item.ser_json(d + 1, s);
+                item.ser_json(s);
                 if index != last {
                     s.out.push(',');
                 }
@@ -1025,11 +1013,11 @@ impl<T> SerJson for [T]
 where
     T: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('[');
         let last = self.len() - 1;
         for (index, item) in self.iter().enumerate() {
-            item.ser_json(d + 1, s);
+            item.ser_json(s);
             if index != last {
                 s.out.push(',');
             }
@@ -1043,8 +1031,8 @@ where
     T: SerJson,
 {
     #[inline(always)]
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
-        self.as_slice().ser_json(d, s)
+    fn ser_json(&self, s: &mut SerJsonState) {
+        self.as_slice().ser_json(s)
     }
 }
 
@@ -1105,11 +1093,11 @@ where
     A: SerJson,
     B: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('[');
-        self.0.ser_json(d, s);
+        self.0.ser_json(s);
         s.out.push(',');
-        self.1.ser_json(d, s);
+        self.1.ser_json(s);
         s.out.push(']');
     }
 }
@@ -1133,13 +1121,13 @@ where
     B: SerJson,
     C: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('[');
-        self.0.ser_json(d, s);
+        self.0.ser_json(s);
         s.out.push(',');
-        self.1.ser_json(d, s);
+        self.1.ser_json(s);
         s.out.push(',');
-        self.2.ser_json(d, s);
+        self.2.ser_json(s);
         s.out.push(']');
     }
 }
@@ -1169,15 +1157,15 @@ where
     C: SerJson,
     D: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('[');
-        self.0.ser_json(d, s);
+        self.0.ser_json(s);
         s.out.push(',');
-        self.1.ser_json(d, s);
+        self.1.ser_json(s);
         s.out.push(',');
-        self.2.ser_json(d, s);
+        self.2.ser_json(s);
         s.out.push(',');
-        self.3.ser_json(d, s);
+        self.3.ser_json(s);
         s.out.push(']');
     }
 }
@@ -1208,19 +1196,17 @@ where
     K: SerJson,
     V: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('{');
         let len = self.len();
         for (index, (k, v)) in self.iter().enumerate() {
-            s.indent(d + 1);
-            k.ser_json(d + 1, s);
+            k.ser_json(s);
             s.out.push(':');
-            v.ser_json(d + 1, s);
+            v.ser_json(s);
             if (index + 1) < len {
                 s.conl();
             }
         }
-        s.indent(d);
         s.out.push('}');
     }
 }
@@ -1251,19 +1237,17 @@ where
     K: SerJson,
     V: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
+    fn ser_json(&self, s: &mut SerJsonState) {
         s.out.push('{');
         let len = self.len();
         for (index, (k, v)) in self.iter().enumerate() {
-            s.indent(d + 1);
-            k.ser_json(d + 1, s);
+            k.ser_json(s);
             s.out.push(':');
-            v.ser_json(d + 1, s);
+            v.ser_json(s);
             if (index + 1) < len {
                 s.conl();
             }
         }
-        s.indent(d);
         s.out.push('}');
     }
 }
@@ -1292,8 +1276,8 @@ impl<T> SerJson for Box<T>
 where
     T: SerJson,
 {
-    fn ser_json(&self, d: usize, s: &mut SerJsonState) {
-        (**self).ser_json(d, s)
+    fn ser_json(&self, s: &mut SerJsonState) {
+        (**self).ser_json(s)
     }
 }
 

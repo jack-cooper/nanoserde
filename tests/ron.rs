@@ -450,7 +450,7 @@ fn de_ser_enum() {
         foo3: Fud,
     }
 
-    let ron = "(\n    foo1:A,\n    foo2:B,\n    foo3:C,\n)";
+    let ron = "(foo1:A,foo2:B,foo3:C,)";
 
     let data = Bar {
         foo1: Fud::A,
@@ -481,7 +481,7 @@ fn ser_enum_complex() {
         foo3: Foo,
     }
 
-    let ron = "(\n    foo1:A,\n    foo2:B(1, \"asd\"),\n    foo3:C(\n        a:2,\n        b:\"qwe\",\n    ),\n)";
+    let ron = "(foo1:A,foo2:B(1,\"asd\"),foo3:C(a:2,b:\"qwe\",),)";
 
     let data = Bar {
         foo1: Foo::A,
