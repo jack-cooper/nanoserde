@@ -1016,7 +1016,7 @@ where
     T: SerRon,
 {
     fn ser_ron(&self, d: usize, s: &mut SerRonState) {
-        s.out.push('(');
+        s.out.push('[');
         let last = self.len() - 1;
         for (index, item) in self.iter().enumerate() {
             item.ser_ron(d + 1, s);
@@ -1024,7 +1024,7 @@ where
                 s.out.push_str(", ");
             }
         }
-        s.out.push(')');
+        s.out.push(']');
     }
 }
 
